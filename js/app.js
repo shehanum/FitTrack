@@ -201,10 +201,10 @@ const App = (() => {
 
         <h3 id="help-backup">Backup &amp; restore</h3>
         <p>All your progress lives in this browser's local storage on this phone &mdash; nowhere else, automatically. That means it's fast and works offline, but it also means clearing Safari's site data, or losing/replacing your phone, wipes it. The Export/Import tools in Settings are how you protect against that.</p>
-        <p><strong>Export backup</strong> downloads a small file containing just your data: start date, every logged completion, and your timer preference &mdash; no app code, no illustrations, just your numbers. It's named like:</p>
+        <p><strong>Export backup</strong> opens your phone's share sheet with a small file containing just your data: start date, every logged completion, and your timer preference &mdash; no app code, no illustrations, just your numbers. From the share sheet, tap <strong>Save to Files</strong> to pick exactly where it goes (iCloud Drive is a good choice), or AirDrop/Mail it instead. The file is named like:</p>
         <p><code>FitTrack-Backup-2026-07-16-1420.json</code></p>
         <p>&mdash; the date and time it was made, so you can always tell which export is newest and never accidentally overwrite an older one.</p>
-        <div class="callout">Exporting only downloads the file to this phone (usually into the Files app &rarr; Downloads). That alone is <em>not</em> a real backup &mdash; if this phone is lost, that file is lost with it. Move or save a copy to iCloud Drive, or email it to yourself, so it exists somewhere independent of this device.</div>
+        <div class="callout">If you save to <strong>On My iPhone</strong> instead of iCloud Drive, that copy still only exists on this phone. Choosing an iCloud Drive folder (or AirDropping/emailing it elsewhere) is what makes it a real backup &mdash; one that survives losing or replacing this device.</div>
         <p><strong>Import backup</strong> opens your phone's file picker &mdash; browse to wherever you saved the export and select it. The app reads the file directly and restores your data; nothing is uploaded or fetched over the network.</p>
 
         <h3 id="help-newphone">Moving to a new phone</h3>
@@ -444,11 +444,8 @@ const App = (() => {
     });
   }
 
-  function exportBackup() {
+  async function exportBackup() {
     const json = Storage.exportData();
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
     // FitTrack-Backup-YYYY-MM-DD-HHmm.json — date AND time, so exporting
     // more than once in a day never silently overwrites an earlier backup,
     // and the name alone tells you what it is and when it was made.
@@ -456,12 +453,41 @@ const App = (() => {
     const dateStamp = Storage.todayISO(now);
     const hh = String(now.getHours()).padStart(2, "0");
     const mm = String(now.getMinutes()).padStart(2, "0");
+    const filename = `FitTrack-Backup-${dateStamp}-${hh}${mm}.json`;
+    const blob = new Blob([json], { type: "application/json" });
+    const statusEl = document.getElementById("import-status");
+
+    // Prefer the native share sheet — this is what actually gives you a
+    // chooser (Save to Files → pick a folder, AirDrop, Mail, etc.) on
+    // iPhone. A plain <a download> link has no chooser on iOS; it just
+    // drops the file straight into Downloads with no say in the matter.
+    if (navigator.canShare) {
+      const file = new File([blob], filename, { type: "application/json" });
+      if (navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: filename });
+          return;
+        } catch (err) {
+          if (err && err.name === "AbortError") return; // user cancelled the sheet — not an error
+          // otherwise fall through to the plain-download fallback below
+        }
+      }
+    }
+
+    // Fallback for browsers without file-sharing support (desktop Chrome/
+    // Firefox, older Safari): a plain download — no chooser, but it works.
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `FitTrack-Backup-${dateStamp}-${hh}${mm}.json`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+    if (statusEl) {
+      statusEl.textContent = "Downloaded — your browser doesn't support the Save-to picker, so this went straight to your default downloads location.";
+      statusEl.style.color = "var(--muted)";
+    }
   }
 
   function importBackup(e) {
