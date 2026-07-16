@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#14171c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FitTrack">
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+<link rel="manifest" href="manifest.json">
+<title>FitTrack — Evening Regimen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="app">
+  <div class="app-topbar">
+    <div class="brand">FitTrack<span>12-week evening regimen</span></div>
+  </div>
+
+  <div id="view-root"></div>
+
+  <nav class="tab-bar">
+    <button class="tab-btn active" data-tab="today"><span class="tab-icon">&#9679;</span>Today</button>
+    <button class="tab-btn" data-tab="program"><span class="tab-icon">&#9776;</span>Program</button>
+    <button class="tab-btn" data-tab="progress"><span class="tab-icon">&#9650;</span>Progress</button>
+    <button class="tab-btn" data-tab="settings"><span class="tab-icon">&#9881;</span>Settings</button>
+  </nav>
+</div>
+
+<div class="modal-overlay" id="exercise-modal">
+  <div class="modal-sheet">
+    <button class="modal-close-btn" id="modal-close">&#10005;</button>
+    <div id="exercise-modal-body"></div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/timer.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

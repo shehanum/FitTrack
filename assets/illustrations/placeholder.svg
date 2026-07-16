@@ -1,0 +1,6 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="200" fill="none"/>
+  <circle cx="100" cy="70" r="28" fill="none" stroke="#8b93a1" stroke-width="4"/>
+  <path d="M60 170 L60 120 Q60 100 100 100 Q140 100 140 120 L140 170" fill="none" stroke="#8b93a1" stroke-width="4" stroke-linecap="round"/>
+  <text x="100" y="195" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#8b93a1">illustration coming soon</text>
+</svg>
