@@ -71,8 +71,34 @@ const Storage = (() => {
     localStorage.removeItem(KEYS.settings);
   }
 
+  function exportData() {
+    return JSON.stringify({
+      exportedAt: new Date().toISOString(),
+      version: 1,
+      startDate: getStartDate(),
+      completions: getAllCompletions(),
+      settings: getSettings()
+    }, null, 2);
+  }
+
+  function importData(jsonString) {
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonString);
+    } catch (e) {
+      throw new Error("That file isn't valid backup data (couldn't be read as JSON).");
+    }
+    if (!parsed || typeof parsed !== "object" || !("completions" in parsed)) {
+      throw new Error("That file doesn't look like a FitTrack backup.");
+    }
+    if (parsed.startDate) localStorage.setItem(KEYS.startDate, parsed.startDate);
+    if (parsed.completions) localStorage.setItem(KEYS.completions, JSON.stringify(parsed.completions));
+    if (parsed.settings) localStorage.setItem(KEYS.settings, JSON.stringify(parsed.settings));
+  }
+
   return {
     todayISO, getStartDate, setStartDate, getSettings, setSettings,
-    getAllCompletions, getDayRecord, toggleExercise, setDayComplete, clearAll
+    getAllCompletions, getDayRecord, toggleExercise, setDayComplete, clearAll,
+    exportData, importData
   };
 })();
