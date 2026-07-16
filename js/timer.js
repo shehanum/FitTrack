@@ -10,6 +10,7 @@ const RestTimer = (() => {
   let onTick = () => {};
   let onDone = () => {};
   let audioCtx = null;
+  let limiter = null;
 
   // Safari (macOS and iOS) only allows audio to start inside the call stack
   // of a direct user gesture (a tap). Creating the AudioContext here, inside
@@ -22,6 +23,16 @@ const RestTimer = (() => {
       const Ctx = window.AudioContext || window.webkitAudioContext;
       if (!Ctx) return;
       audioCtx = new Ctx();
+      // A limiter on the output lets us drive the oscillators much harder
+      // (louder) without the harsh digital clipping that plain high gain
+      // would cause — it gently squashes peaks instead of chopping them.
+      limiter = audioCtx.createDynamicsCompressor();
+      limiter.threshold.setValueAtTime(-18, audioCtx.currentTime);
+      limiter.knee.setValueAtTime(6, audioCtx.currentTime);
+      limiter.ratio.setValueAtTime(16, audioCtx.currentTime);
+      limiter.attack.setValueAtTime(0.002, audioCtx.currentTime);
+      limiter.release.setValueAtTime(0.15, audioCtx.currentTime);
+      limiter.connect(audioCtx.destination);
     }
     if (audioCtx.state === "suspended") {
       audioCtx.resume();
@@ -31,24 +42,38 @@ const RestTimer = (() => {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.connect(gain);
-    gain.connect(audioCtx.destination);
+    gain.connect(limiter);
     gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
     osc.start();
     osc.stop(audioCtx.currentTime + 0.01);
   }
 
-  function tone(freq, startTime, dur, peakGain = 0.18) {
+  function tone(freq, startTime, dur, peakGain = 0.7) {
+    // Fundamental (triangle — brighter/louder-sounding than sine) plus a
+    // quieter octave-up layer for extra cut-through on small phone speakers.
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.type = "sine";
+    gain.connect(limiter);
+    osc.type = "triangle";
     osc.frequency.value = freq;
     gain.gain.setValueAtTime(0.0001, startTime);
-    gain.gain.exponentialRampToValueAtTime(peakGain, startTime + 0.03);
+    gain.gain.exponentialRampToValueAtTime(peakGain, startTime + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.0001, startTime + dur);
     osc.start(startTime);
     osc.stop(startTime + dur + 0.02);
+
+    const osc2 = audioCtx.createOscillator();
+    const gain2 = audioCtx.createGain();
+    osc2.connect(gain2);
+    gain2.connect(limiter);
+    osc2.type = "square";
+    osc2.frequency.value = freq * 2;
+    gain2.gain.setValueAtTime(0.0001, startTime);
+    gain2.gain.exponentialRampToValueAtTime(peakGain * 0.35, startTime + 0.02);
+    gain2.gain.exponentialRampToValueAtTime(0.0001, startTime + dur);
+    osc2.start(startTime);
+    osc2.stop(startTime + dur + 0.02);
   }
 
   function beep() {
@@ -57,9 +82,9 @@ const RestTimer = (() => {
       if (audioCtx) {
         const now = audioCtx.currentTime;
         // three short rising beeps — more noticeable than a single tone
-        tone(660, now, 0.16);
-        tone(660, now + 0.22, 0.16);
-        tone(880, now + 0.44, 0.28);
+        tone(660, now, 0.18);
+        tone(660, now + 0.24, 0.18);
+        tone(880, now + 0.48, 0.34);
       }
     } catch (e) { /* audio unavailable — silently skip */ }
     // Note: navigator.vibrate has no effect on iOS Safari (Apple has never
