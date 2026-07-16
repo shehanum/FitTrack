@@ -166,6 +166,59 @@ const App = (() => {
     modal.classList.remove("open");
   }
 
+  // ---- HELP / GUIDE MODAL -----------------------------------------------------
+  const helpModal = document.getElementById("help-modal");
+  const helpModalBody = document.getElementById("help-modal-body");
+  document.getElementById("help-btn").addEventListener("click", openHelp);
+  document.getElementById("help-modal-close").addEventListener("click", closeHelp);
+  helpModal.addEventListener("click", (e) => { if (e.target === helpModal) closeHelp(); });
+
+  function closeHelp() { helpModal.classList.remove("open"); }
+
+  function openHelp() {
+    helpModalBody.innerHTML = `
+      <div class="help-content">
+        <h2>Guide</h2>
+        <div class="help-toc">
+          <a href="#help-tabs">The tabs</a>
+          <a href="#help-timer">Rest timer</a>
+          <a href="#help-progress">Progress tracking</a>
+          <a href="#help-backup">Backup &amp; restore</a>
+          <a href="#help-newphone">Moving to a new phone</a>
+        </div>
+
+        <h3 id="help-tabs">The tabs</h3>
+        <p><strong>Today</strong> shows the workout for the current date, based on your program start date (set in Settings). The strip of seven day-pills lets you tap back to any day this week to check off exercises retroactively.</p>
+        <p><strong>Program</strong> is a read-only preview of all 12 weeks, so you can see what's coming.</p>
+        <p><strong>Progress</strong> shows your total logged workouts, current day streak, and a two-month calendar with completed days filled in.</p>
+        <p><strong>Settings</strong> is where the program start date, default rest time, and backup tools live.</p>
+
+        <h3 id="help-timer">Rest timer</h3>
+        <p>Tap any exercise to open its detail card. The timer defaults to whatever you last picked (or set as default in Settings); tap a preset or Start to begin the countdown. It plays three rising beeps and a vibration (vibration is Android-only &mdash; iPhone speakers will just get the sound) when it hits zero.</p>
+
+        <h3 id="help-progress">Marking workouts complete</h3>
+        <p>Tap the circle next to an exercise, or the "Mark exercise complete" button inside its detail card, to check it off. Once every exercise in a session is checked, that whole day is logged as complete and shows up filled in on the Progress calendar.</p>
+
+        <h3 id="help-backup">Backup &amp; restore</h3>
+        <p>All your progress lives in this browser's local storage on this phone &mdash; nowhere else, automatically. That means it's fast and works offline, but it also means clearing Safari's site data, or losing/replacing your phone, wipes it. The Export/Import tools in Settings are how you protect against that.</p>
+        <p><strong>Export backup</strong> downloads a small file containing just your data: start date, every logged completion, and your timer preference &mdash; no app code, no illustrations, just your numbers. It's named like:</p>
+        <p><code>FitTrack-Backup-2026-07-16-1420.json</code></p>
+        <p>&mdash; the date and time it was made, so you can always tell which export is newest and never accidentally overwrite an older one.</p>
+        <div class="callout">Exporting only downloads the file to this phone (usually into the Files app &rarr; Downloads). That alone is <em>not</em> a real backup &mdash; if this phone is lost, that file is lost with it. Move or save a copy to iCloud Drive, or email it to yourself, so it exists somewhere independent of this device.</div>
+        <p><strong>Import backup</strong> opens your phone's file picker &mdash; browse to wherever you saved the export and select it. The app reads the file directly and restores your data; nothing is uploaded or fetched over the network.</p>
+
+        <h3 id="help-newphone">Moving to a new phone</h3>
+        <ol>
+          <li>On the old phone (or from iCloud Drive/email), make sure you have your latest <code>FitTrack-Backup-&hellip;.json</code> file.</li>
+          <li>On the new phone, open the app's web address in Safari and use Share &rarr; <strong>Add to Home Screen</strong> to install it fresh.</li>
+          <li>Open the app, go to Settings &rarr; <strong>Import backup</strong>, and select that file (from Files app, iCloud Drive, or wherever it ended up on the new phone).</li>
+          <li>Your start date, history, and settings should now match the old phone exactly.</li>
+        </ol>
+      </div>
+    `;
+    helpModal.classList.add("open");
+  }
+
   function openExerciseDetail(exercise, dateISO, index, total) {
     const key = exKey(dateISO, index);
     const rec = Storage.getDayRecord(dateISO);
@@ -357,9 +410,19 @@ const App = (() => {
           ${[30,45,60,90,120].map(s => `<option value="${s}" ${s===settings.restDefault?"selected":""}>${s} seconds</option>`).join("")}
         </select>
       </div>
+      <div class="settings-block">
+        <label class="settings-label">Backup &amp; restore</label>
+        <div class="backup-row">
+          <button class="timer-btn secondary" id="export-btn">Export backup</button>
+          <button class="timer-btn secondary" id="import-btn">Import backup</button>
+        </div>
+        <input type="file" id="import-file-input" accept="application/json,.json" style="display:none">
+        <p class="settings-hint">Export saves a small file with your start date and every logged workout. Keep it somewhere safe (Files app, email to yourself, iCloud Drive) and use Import to restore it &mdash; including after clearing Safari data, switching phones, or a fresh install.</p>
+        <p class="settings-hint" id="import-status"></p>
+      </div>
       <div class="settings-block danger">
         <button class="danger-btn" id="reset-data-btn">Reset all progress</button>
-        <p class="settings-hint">Clears your start date and every logged workout. Can't be undone.</p>
+        <p class="settings-hint">Clears your start date and every logged workout. Can't be undone &mdash; export a backup first if you want to keep it.</p>
       </div>
     `;
     document.getElementById("start-date-input").addEventListener("change", (e) => {
@@ -368,12 +431,61 @@ const App = (() => {
     document.getElementById("rest-default-input").addEventListener("change", (e) => {
       Storage.setSettings({ restDefault: parseInt(e.target.value, 10) });
     });
+    document.getElementById("export-btn").addEventListener("click", exportBackup);
+    document.getElementById("import-btn").addEventListener("click", () => {
+      document.getElementById("import-file-input").click();
+    });
+    document.getElementById("import-file-input").addEventListener("change", importBackup);
     document.getElementById("reset-data-btn").addEventListener("click", () => {
       if (confirm("Reset all progress and settings? This can't be undone.")) {
         Storage.clearAll();
         renderSettings();
       }
     });
+  }
+
+  function exportBackup() {
+    const json = Storage.exportData();
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    // FitTrack-Backup-YYYY-MM-DD-HHmm.json — date AND time, so exporting
+    // more than once in a day never silently overwrites an earlier backup,
+    // and the name alone tells you what it is and when it was made.
+    const now = new Date();
+    const dateStamp = Storage.todayISO(now);
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    a.href = url;
+    a.download = `FitTrack-Backup-${dateStamp}-${hh}${mm}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function importBackup(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const statusEl = document.getElementById("import-status");
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        Storage.importData(reader.result);
+        statusEl.textContent = "Backup restored.";
+        statusEl.style.color = "var(--ok)";
+        renderSettings();
+      } catch (err) {
+        statusEl.textContent = err.message || "Couldn't import that file.";
+        statusEl.style.color = "var(--rest)";
+      }
+    };
+    reader.onerror = () => {
+      statusEl.textContent = "Couldn't read that file.";
+      statusEl.style.color = "var(--rest)";
+    };
+    reader.readAsText(file);
+    e.target.value = "";
   }
 
   function init() {
