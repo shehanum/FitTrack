@@ -445,48 +445,71 @@ const App = (() => {
   }
 
   async function exportBackup() {
-    const json = Storage.exportData();
-    // FitTrack-Backup-YYYY-MM-DD-HHmm.json — date AND time, so exporting
-    // more than once in a day never silently overwrites an earlier backup,
-    // and the name alone tells you what it is and when it was made.
-    const now = new Date();
-    const dateStamp = Storage.todayISO(now);
-    const hh = String(now.getHours()).padStart(2, "0");
-    const mm = String(now.getMinutes()).padStart(2, "0");
-    const filename = `FitTrack-Backup-${dateStamp}-${hh}${mm}.json`;
-    const blob = new Blob([json], { type: "application/json" });
     const statusEl = document.getElementById("import-status");
+    if (statusEl) { statusEl.textContent = ""; }
 
-    // Prefer the native share sheet — this is what actually gives you a
-    // chooser (Save to Files → pick a folder, AirDrop, Mail, etc.) on
-    // iPhone. A plain <a download> link has no chooser on iOS; it just
-    // drops the file straight into Downloads with no say in the matter.
-    if (navigator.canShare) {
-      const file = new File([blob], filename, { type: "application/json" });
-      if (navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file], title: filename });
-          return;
-        } catch (err) {
-          if (err && err.name === "AbortError") return; // user cancelled the sheet — not an error
-          // otherwise fall through to the plain-download fallback below
-        }
+    // Step 1: build the file. Isolated in its own try/catch so a failure
+    // here (e.g. corrupted localStorage data) shows a clear message
+    // instead of the button silently doing nothing.
+    let blob, filename;
+    try {
+      const json = Storage.exportData();
+      // FitTrack-Backup-YYYY-MM-DD-HHmm.json — date AND time, so exporting
+      // more than once in a day never silently overwrites an earlier
+      // backup, and the name alone tells you what it is and when it was made.
+      const now = new Date();
+      const dateStamp = Storage.todayISO(now);
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      filename = `FitTrack-Backup-${dateStamp}-${hh}${mm}.json`;
+      blob = new Blob([json], { type: "application/json" });
+    } catch (err) {
+      if (statusEl) {
+        statusEl.textContent = "Couldn't prepare the backup file: " + (err && err.message ? err.message : err);
+        statusEl.style.color = "var(--rest)";
       }
+      return;
     }
 
-    // Fallback for browsers without file-sharing support (desktop Chrome/
-    // Firefox, older Safari): a plain download — no chooser, but it works.
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    if (statusEl) {
-      statusEl.textContent = "Downloaded — your browser doesn't support the Save-to picker, so this went straight to your default downloads location.";
-      statusEl.style.color = "var(--muted)";
+    // Step 2: try the native share sheet (Save to Files → pick a folder,
+    // AirDrop, Mail, etc.). Everything here — the feature-detection call
+    // AND the share call itself — is inside one try/catch, since some
+    // browsers throw on the detection call rather than just returning
+    // false. Any failure at all falls through to the plain download below
+    // instead of leaving the button looking like it did nothing.
+    try {
+      if (navigator.canShare) {
+        const file = new File([blob], filename, { type: "application/json" });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: filename });
+          return; // shared successfully — done
+        }
+      }
+    } catch (err) {
+      if (err && err.name === "AbortError") return; // user closed the sheet without picking anything — not an error, don't also trigger a download
+      // any other failure — fall through to the fallback below
+    }
+
+    // Step 3: fallback — a plain download link. No chooser, but it always
+    // works, and it always leaves a visible confirmation either way.
+    try {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      if (statusEl) {
+        statusEl.textContent = "Downloaded — your browser doesn't support the Save-to picker, so this went straight to your default downloads location.";
+        statusEl.style.color = "var(--muted)";
+      }
+    } catch (err) {
+      if (statusEl) {
+        statusEl.textContent = "Export failed: " + (err && err.message ? err.message : err);
+        statusEl.style.color = "var(--rest)";
+      }
     }
   }
 
