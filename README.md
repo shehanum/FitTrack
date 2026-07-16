@@ -34,9 +34,11 @@ there's no account and nothing to sync. That's great for privacy and offline
 use, but it also means **clearing Safari's site data for this app, or
 losing/replacing your phone, erases it** — there's no automatic cloud copy.
 
-**Export backup** (Settings tab): downloads a small file containing just
-your data — start date, logged completions, timer setting. No app code, no
-illustrations, just your numbers, typically a few KB. It's named:
+**Export backup** (Settings tab): opens your phone's native **share sheet**
+with a small file containing just your data — start date, logged
+completions, timer setting. No app code, no illustrations, just your
+numbers, typically a few KB. From the share sheet, tap **Save to Files** to
+choose exactly where it goes, or AirDrop/Mail it instead. It's named:
 
 ```
 FitTrack-Backup-YYYY-MM-DD-HHmm.json
@@ -45,10 +47,14 @@ FitTrack-Backup-YYYY-MM-DD-HHmm.json
 — date and time of the export, so you can always tell which one is newest
 and never silently overwrite an older one by exporting twice in a day.
 
-Exporting only downloads the file to this phone (usually Files app →
-Downloads) — that alone is **not yet a real backup**. If this phone is lost,
-that file goes with it. Move or save a copy to iCloud Drive, or email it to
-yourself, so a copy exists somewhere independent of the device.
+If you save to **On My iPhone** instead of an iCloud Drive folder, that copy
+still only exists on this phone — that alone is **not yet a real backup**.
+Choosing an iCloud Drive folder (or AirDropping/emailing it elsewhere) is
+what makes it survive losing or replacing the device.
+
+*(Older browsers without share-sheet support fall back to a plain download
+into your default downloads location — you'll see a note on-screen if that
+happens.)*
 
 **Import backup** (Settings tab): opens your phone's file picker — browse to
 wherever you saved the export and select it. The app reads that file
