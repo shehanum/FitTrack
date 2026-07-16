@@ -17,10 +17,51 @@ Home Screen like a native app.
 - **Progress tab** — total workouts logged, current streak, and a two-month
   calendar with completed days highlighted.
 - **Settings tab** — change your program start date, default rest duration,
-  or reset all data.
+  back up/restore your data, or reset it.
+- **In-app guide** — tap the **?** button top-right, any time, for a
+  built-in walkthrough of all of the above (including everything in the
+  Backup & Restore section below).
 
 Calendar sync and push reminders were intentionally left out of this first
 pass, per your call to revisit those later as an enhancement.
+
+## Backup & restore
+
+**Where your data actually lives:** everything — your program start date,
+every exercise you've checked off, your timer preference — is saved in this
+browser's local storage, on this phone, only. Nothing is sent to a server;
+there's no account and nothing to sync. That's great for privacy and offline
+use, but it also means **clearing Safari's site data for this app, or
+losing/replacing your phone, erases it** — there's no automatic cloud copy.
+
+**Export backup** (Settings tab): downloads a small file containing just
+your data — start date, logged completions, timer setting. No app code, no
+illustrations, just your numbers, typically a few KB. It's named:
+
+```
+FitTrack-Backup-YYYY-MM-DD-HHmm.json
+```
+
+— date and time of the export, so you can always tell which one is newest
+and never silently overwrite an older one by exporting twice in a day.
+
+Exporting only downloads the file to this phone (usually Files app →
+Downloads) — that alone is **not yet a real backup**. If this phone is lost,
+that file goes with it. Move or save a copy to iCloud Drive, or email it to
+yourself, so a copy exists somewhere independent of the device.
+
+**Import backup** (Settings tab): opens your phone's file picker — browse to
+wherever you saved the export and select it. The app reads that file
+directly and restores your data; nothing is uploaded or fetched over the
+network.
+
+**Moving to a new phone:**
+1. Make sure you have your latest `FitTrack-Backup-…json` file somewhere
+   reachable from the new phone (iCloud Drive is easiest).
+2. On the new phone, open the app's URL in Safari and Share → **Add to Home
+   Screen** to install it fresh.
+3. Open the app → Settings → **Import backup** → select that file.
+4. Your start date, history, and settings now match the old phone.
 
 ## Installing it on your iPhone
 
@@ -74,9 +115,8 @@ webapp/
 ## Known limitations (current pass)
 
 - **Reminders/calendar**: not included yet — flagged for a later pass.
-- **Data storage**: progress is saved in the browser's local storage on
-  your phone. Clearing Safari's site data for this app would erase it —
-  there's no cloud backup in this version. Worth adding an export/import
-  button in a future pass if that's a concern.
+- **Data storage**: local to this browser/phone only — see Backup & Restore
+  above for how to protect against losing it, since there's still no
+  automatic cloud sync.
 - **Illustrations**: current set is the vector placeholder art — swap-in
   ready per above once you have the new files.
